@@ -16,47 +16,45 @@ class Game:
         self.clock = pygame.time.Clock()
         self.pmodel = pygame.image.load("battler.png").convert_alpha()
         self.speed = 5
-        self.view_diameter = 100
+        self.view_diameter = 200
         
         self.view = pygame.Surface((self.view_diameter+2,self.view_diameter+2))
         
 
     def main(self):
         
-        action = [0,0,0,0] # left right up down
+        left, right, up, down = 0,0,0,0 # left right up down
         while True:
             for ev in pygame.event.get():    
                 if ev.type == pygame.QUIT:
                     pygame.quit()
                     sys.exit()
                 elif ev.type == pygame.KEYDOWN:
-                    k = ev.key
-                    if k == pygame.K_a:
-                        action[0] = 1
-                    elif k == pygame.K_d:
-                        action[1] = 1
-                    elif k == pygame.K_w:
-                        action[2] = 1
-                    elif k == pygame.K_s:
-                        action[3] = 1
+                    if ev.key == pygame.K_a:
+                        left = 1
+                    elif ev.key == pygame.K_d: 
+                        right = 1
+                    elif ev.key == pygame.K_w:
+                        up = 1
+                    elif ev.key == pygame.K_s:
+                        down = 1
                 elif ev.type == pygame.KEYUP:
-                    k = ev.key
-                    if k == pygame.K_a:
-                        action[0] = 0
-                    elif k == pygame.K_d:
-                        action[1] = 0
-                    elif k == pygame.K_w:
-                        action[2] = 0
-                    elif k == pygame.K_s:
-                        action[3] = 0
-            accel = (action[1]-action[0],action[3]-action[2])
+                    if ev.key == pygame.K_a:
+                        left = 0
+                    elif ev.key == pygame.K_d:
+                        right = 0
+                    elif ev.key == pygame.K_w:
+                        up = 0
+                    elif ev.key == pygame.K_s:
+                        down = 0
+            accel = (right-left,down-up)
 
-            self.player.pos.move(accel,self.speed, 1/60)
+            self.player.pos.move(accel,self.speed, 1/60) 
 
             self.screen.fill((0,0,0))
             t1=time.perf_counter()
             self.render()
-            self.screen.blit(self.pmodel,(480,480))
+            #self.screen.blit(self.pmodel,(480,480))
             t2=time.perf_counter()
             pygame.display.update()
             self.clock.tick(60)
@@ -79,14 +77,14 @@ class Game:
         # take slice of array inside these boundaries
         visible_map = self.world.world[minX:maxX, minY:maxY]
         pygame.surfarray.blit_array(self.view,visible_map)
-        scaled_view = pygame.transform.scale(self.view,(1050,1050)) # 5 pixels of padding on each side
+        scaled_view = pygame.transform.scale(self.view,(1040,1040)) # 20 pixels of padding on each side
 
 
 
         # use fractional part of number to produce an offset
-        offsetX = -int(fracX*self.window_length/self.view_diameter)
-        offsetY = -int(fracY*self.window_height/self.view_diameter)
-        print(offsetX)
+        offsetX = -20-int(fracX*self.window_length/self.view_diameter)
+        offsetY = -20-int(fracY*self.window_height/self.view_diameter)
+        print(intX,intY)
 
         self.screen.blit(scaled_view,(offsetX,offsetY))
 

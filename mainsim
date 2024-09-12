@@ -1,0 +1,38 @@
+from game import Game
+import pygame
+import time
+pygame.init()
+pixellength = 1920
+pixelheight = 1080
+screen = pygame.display.set_mode((pixellength,pixelheight))
+pygame.display.set_caption("simulator")
+
+# create grid (gridsize, population)
+game = Game(20,40,pixellength,pixelheight) # gridsize is the length of one side of the grid, so the amount of cells is gridsize^2
+
+
+White = (255,255,255)
+Black = (0,0,0)
+screen.fill(Black)
+game.gridclear()
+game.generate()
+
+
+while True:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
+            running = False
+
+    game.draw(screen)
+    game.allmoveright()
+    
+    pygame.display.update()
+
+    time.sleep(1)
+    
+
+    
+
+            
