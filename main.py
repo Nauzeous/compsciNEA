@@ -11,14 +11,12 @@ class Game:
         self.screen = pygame.display.set_mode((wlength,wheight))
         self.worldseed = random.randint(1,20000)
 
-        self.centre = [1000,1000] 
         self.player = Player()
         self.clock = pygame.time.Clock()
         self.pmodel = pygame.image.load("battler.png").convert_alpha()
         self.speed = 5
-        self.view_diameter = 200
-        
-        self.view = pygame.Surface((self.view_diameter+2,self.view_diameter+2))
+        self.render_dist = 2
+        self.view = pygame.Surface((self.render_dist*self.world.chunksize*2,self.render_dist*self.world.chunksize*2))
         
 
     def main(self):
@@ -47,6 +45,7 @@ class Game:
                         up = 0
                     elif ev.key == pygame.K_s:
                         down = 0
+
             accel = (right-left,down-up)
 
             self.player.pos.move(accel,self.speed, 1/60) 
@@ -55,6 +54,7 @@ class Game:
             t1=time.perf_counter()
             self.render()
             #self.screen.blit(self.pmodel,(480,480))
+            self.world.check_for_new_chunks(self.player.pos)
             t2=time.perf_counter()
             pygame.display.update()
             self.clock.tick(60)
@@ -63,29 +63,24 @@ class Game:
 
     def render(self):
 
-        view_radius = self.view_diameter//2 + 1
+        intX = int(self.player.pos.x)
+        intY = int(self.player.pos.y)
 
-        fracX,intX = np.modf(self.player.pos.x)
-        fracY,intY = np.modf(self.player.pos.y)
-
-        # initialise range of values viewable by player
-        minX = int(intX-view_radius + self.world.centre[0])
-        maxX = int(intX+view_radius + self.world.centre[0])
-        minY = int(intY-view_radius + self.world.centre[1])
-        maxY = int(intY+view_radius + self.world.centre[1])
+        fracX =self.player.pos.x-intX
+        fracY = self.player.pos.y-intY
 
         # take slice of array inside these boundaries
-        visible_map = self.world.world[minX:maxX, minY:maxY]
+        visible_map = self.world.get_world_grid((intX,intY),self.render_dist)
         pygame.surfarray.blit_array(self.view,visible_map)
         scaled_view = pygame.transform.scale(self.view,(1040,1040)) # 20 pixels of padding on each side
+
+        view_diameter = 500 # pixels on screen
 
 
 
         # use fractional part of number to produce an offset
-        offsetX = -20-int(fracX*self.window_length/self.view_diameter)
-        offsetY = -20-int(fracY*self.window_height/self.view_diameter)
-        print(intX,intY)
-
+        offsetX = -20-int(fracX*self.window_length/view_diameter)
+        offsetY = -20-int(fracY*self.window_height/view_diameter)
         self.screen.blit(scaled_view,(offsetX,offsetY))
 
 
