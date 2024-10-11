@@ -35,46 +35,36 @@ def add_colour(world):
 
 class World:
 	def __init__(self):
-		self.centre = [25,25]
 		self.chunksize = 50
-		self.chunks = np.zeros((9,9,self.chunksize,self.chunksize,3),dtype = np.uint8) # chunkX, chunkY, chunksizeX
+		loading_range = 30
+		self.offset = [loading_range // 2,loading_range // 2]
+		self.loaded_chunks = np.array((loading_range*self.chunksize,loading_range*self.chunksize,3),dtype = np.uint8)
 		self.seed = 8_002
 		self.chunktasks = []
 		asyncio.run(self.spawnbasechunks()) # start with 10x10 chunks
 
-
-
-
-		
-        
-
-	def world_to_chunk_conv(world_x,world_y):
-		return int(world_x/self.chunksize),int(world_y/self.chunksize)
-
-	def chunk_to_chunkgrid_conv(chunk_x,chunk_y):
-		return chunk_x
 
 	def new_chunk(self,x,y) -> None:
 
 		# x and y are the top left corner of the chunk, or the closest multiple of 100 below current x or y
 
 		noise_grid = np.zeros((self.chunksize,self.chunksize),dtype = float)
-		#convert from signed space to unsigned space
-		uint_x = (x+self.centre[0])*self.chunksize
-		uint_y = (y+self.centre[1])*self.chunksize
+
+		x_lcs = (x+self.centre[0])
+		y_lcs = (y+self.centre[1])
 
 		for i in range(self.chunksize):
 			for j in range(self.chunksize):
-				noise_grid[i,j]=pnoise2((i+uint_x)/2000,(j+uint_y)/2000,	
+				noise_grid[i,j]=pnoise2((i+x)/2000,(j+y)/2000,	
 					octaves=6,
 						persistence=0.5,lacunarity=2,base=self.seed)
 		
 		chunk = add_colour(noise_grid)
-		self.chunks[x+self.centre[0],y+self.centre[1]]=chunk
+		self.loaded_chunks[x_lcs:x_lcs+self.chunksize,y_lcs:y_lcs+self.chunksize]=chunk
 
 		
-	async def create_chunk(self,x,y):
-		chunk = await asyncio.to_thread(self.new_chunk,x,y)
+	async def create_chunk(self,x_cs,y_cs):
+		chunk = await asyncio.to_thread(self.new_chunk,x_cs,y_cs)
 		return chunk
 	
 	async def spawnbasechunks(self):
@@ -90,7 +80,7 @@ class World:
 
 	def check_for_new_chunks(self,position): # generate chunks in a 5x5 chunk range around the player if not generated
 
-		curr_chunk_coord = (int(position.x/self.chunksize)+self.centre[0],int(position.y/self.chunksize)+self.centre[1])
+		curr_chunk_coord = (int(position.x/self.chunksize),int(position.y/self.chunksize))
 
 		for i in range(-2,3):
 			for j in range(-2,3):
@@ -100,24 +90,12 @@ class World:
 					chunkY = int(coord[1]/100)
 					self.chunktasks.append(self.create_chunk(chunkX,chunkY))
 
-	def get_world_grid(self,position:tuple,render_dist:int): # convert from world space into chunk space, then chunk space into chunkgrid space
+
+
+	def get_world_grid(self,position:tuple,render_dist:int): # convert from world space into loaded world space
 		
-		# convert from world space to chunk space
+		lwsp = (int(position[0]+self.centre[0]),int(position[1]+self.centre[1]))
 
-		dimXY = (render_dist*2) * self.chunksize
+		visible_area = self.loaded_chunks[lwsp[0]-render_dist:lwsp[0]+render_dist,lwsp[1]-render_dist:lwsp[1]+render_dist]
 
-		grid = np.zeros((dimXY,dimXY,3))
-
-		player_chunk_x,player_chunk_y = int(position[0]/self.chunksize)+self.centre[0], int(position[1]/self.chunksize)+self.centre[1]
-
-		print(position)
-
-		for i in range(-render_dist,render_dist):
-			for j in range(-render_dist,render_dist):
-				gridX = (i + render_dist)*self.chunksize+position[0] % self.chunksize
-				gridY = (j + render_dist)*self.chunksize+position[1] % self.chunksize
-				rendered_chunk = self.chunks[player_chunk_x+i,player_chunk_y+j]
-				print(gridX,gridY)
-				grid[gridX:gridX+self.chunksize,gridY:gridY+self.chunksize]=rendered_chunk
-
-		return grid
+		return visible_area
